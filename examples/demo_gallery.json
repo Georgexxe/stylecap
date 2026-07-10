@@ -1,0 +1,24 @@
+[
+  {
+    "title": "Kitten explorer",
+    "video_url": "https://storage.googleapis.com/amd-hackathon-clips/13825391-uhd_3840_2160_30fps.mp4",
+    "facts": "An orange kitten emerges from green foliage, walks forward across dirt, and maintains eye contact with the camera.",
+    "captions": {
+      "formal": "An orange kitten emerges from green foliage and walks forward. The kitten maintains eye contact with the camera while traversing the dirt ground.",
+      "sarcastic": "An orange kitten emerges from the foliage, clearly convinced it is the apex predator of this vast, three-foot garden.",
+      "humorous_tech": "A small orange kitten initiates a forward-walk sequence and maintains a steady lock on the camera's sensor.",
+      "humorous_non_tech": "A tiny explorer clears the backyard jungle and decides the camera is the first territory of a new empire."
+    }
+  },
+  {
+    "title": "Office debugging loop",
+    "video_url": "https://storage.googleapis.com/amd-hackathon-clips/3044693-uhd_3840_2160_24fps.mp4",
+    "facts": "A woman alternates between typing and looking at a computer monitor with a puzzled expression in an office.",
+    "captions": {
+      "formal": "A woman types on a keyboard and looks at a computer monitor in an office setting, repeatedly alternating between typing and viewing the screen.",
+      "sarcastic": "A woman demonstrates a masterful strategy of typing a few words and then staring at the screen in total confusion.",
+      "humorous_tech": "The user is stuck in an infinite loop: type a few characters, trigger a confused expression, and repeat.",
+      "humorous_non_tech": "She types a bit, looks up, and blinks, as if the computer might magically explain itself if she stares hard enough."
+    }
+  }
+]

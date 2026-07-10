@@ -1,0 +1,1 @@
+"""StyleCap test suite."""

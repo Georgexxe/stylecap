@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+*.log
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+budget.jsonl
+cache/
+out/
+out-demo/
+live-results*.json
+docker-test/
+assets/cover.png
+.streamlit/secrets.toml
