@@ -15,14 +15,14 @@ from pathlib import Path
 import typer
 
 sys.path.insert(0, os.path.dirname(__file__))
-from src import budget, config, emit, evaluator, llm, pipeline  # noqa: E402
-from src.schemas import FactSheet  # noqa: E402
+from src import budget, compact, config, emit, evaluator, llm, pipeline  # noqa: E402
+from src.schemas import FactSheet, HumorHook, TimelineBeat  # noqa: E402
 
 app = typer.Typer(no_args_is_help=True)
 
 
 @app.command()
-def process(clips: str = typer.Option(...), out: str = typer.Option("out")):
+def process(clips: str = typer.Option(...), out: str = typer.Option("out")) -> None:
     """Run the full pipeline over a directory of video clips."""
     paths = sorted(
         p
@@ -50,7 +50,7 @@ def evaluate(
     input_path: str = typer.Option("/input/tasks.json", "--input"),
     output_path: str = typer.Option("/output/results.json", "--output"),
     mock: bool = typer.Option(False, "--mock"),
-):
+) -> None:
     """Run the official Track 2 evaluator file contract."""
     if mock:
         llm.MOCK = True
@@ -65,7 +65,7 @@ def evaluate(
 
 
 @app.command()
-def demo():
+def demo() -> None:
     """Verify pipeline wiring with a synthetic clip description and mock inference."""
     os.environ["STYLECAP_MOCK"] = "1"
     llm.MOCK = True
@@ -75,20 +75,20 @@ def demo():
         entities=["a cat", "three glasses"],
         actions=["cat walks along counter", "cat knocks third glass off while facing camera"],
         timeline=[
-            {"t": "0:05", "event": "cat steps onto counter"},
-            {"t": "0:32", "event": "third glass falls"},
+            TimelineBeat(t="0:05", event="cat steps onto counter"),
+            TimelineBeat(t="0:32", event="third glass falls"),
         ],
         on_screen_text=[],
         audio_events=["off-screen voice: 'Whiskers, no'"],
         mood="chaotic-domestic",
         humor_hooks=[
-            {
-                "observation": "cat stares at camera while pushing glass",
-                "why_funny": "premeditation plus eye contact",
-            }
+            HumorHook(
+                observation="cat stares at camera while pushing glass",
+                why_funny="premeditation plus eye contact",
+            )
         ],
     )
-    final = pipeline.compact.run(facts)
+    final = compact.run(facts)
     typer.echo(f"selected {len(final)} captions")
     for fc in final:
         typer.echo(f"  [{fc.style}] {fc.caption}")
@@ -97,7 +97,7 @@ def demo():
 
 
 @app.command()
-def report():
+def report() -> None:
     """Budget spend summary."""
     typer.echo(budget.report())
 

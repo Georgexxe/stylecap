@@ -10,10 +10,10 @@ import os
 from collections.abc import Iterable
 from typing import Any, cast
 
-from openai import OpenAI
+from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from openai.types.shared_params import ResponseFormatJSONObject
-from tenacity import retry, stop_after_attempt, wait_exponential, wait_fixed
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential, wait_fixed
 
 from . import budget, config
 
@@ -95,7 +95,21 @@ def _mock_response(messages: list[Message], want_json: bool) -> str:
     )
 
 
-@retry(stop=stop_after_attempt(6), wait=wait_exponential(min=2, max=20), reraise=True)
+def _is_retryable(exc: BaseException) -> bool:
+    """Retry only failures that Fireworks documents as transient."""
+    if isinstance(exc, (APIConnectionError, APITimeoutError)):
+        return True
+    if isinstance(exc, APIStatusError):
+        return exc.status_code in {408, 429, 502, 503, 504, 520}
+    return False
+
+
+@retry(
+    retry=retry_if_exception(_is_retryable),
+    stop=stop_after_attempt(4),
+    wait=wait_exponential(min=2, max=12),
+    reraise=True,
+)
 def _call(
     model: str,
     messages: list[Message],
@@ -142,8 +156,16 @@ def chat(
     if MOCK:
         return _mock_response(messages, want_json)
     budget.check()
-    out, tin, tout = _call(model, messages, temperature, max_tokens, want_json)
-    budget.record(model, tin, tout, stage)
+    used_model = model
+    try:
+        out, tin, tout = _call(model, messages, temperature, max_tokens, want_json)
+    except (APIConnectionError, APIStatusError, APITimeoutError):
+        fallback = config.SERVERLESS_FALLBACK_MODEL
+        if not fallback or fallback == model:
+            raise
+        used_model = fallback
+        out, tin, tout = _call(fallback, messages, temperature, max_tokens, want_json)
+    budget.record(used_model, tin, tout, stage)
     return out
 
 

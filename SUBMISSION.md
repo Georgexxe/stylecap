@@ -14,15 +14,15 @@ StyleCap - Grounded Four-Style Video Captioning with Gemma
 
 StyleCap turns unseen videos into accurate captions in four unmistakable voices: formal,
 sarcastic, humorous-tech, and humorous-non-tech. A compact Gemma-centered pipeline first
-extracts grounded scene facts, then generates and selects all four styles in only three
-model calls per clip.
+extracts grounded scene facts, then generates four candidates per voice and selects all
+four styles in only three model calls per clip.
 
 ## Long description
 
 Humorous video captioning creates a structural conflict: increasing creativity often
 increases hallucination. StyleCap separates observation from writing. A vision-capable
 model converts sampled video frames into a factual scene sheet containing entities,
-actions, timeline beats, visible text, and grounded humor hooks. Gemma then produces three
+actions, timeline beats, visible text, and grounded humor hooks. Gemma then produces four
 candidates for every requested voice in one batched call. A final judge call selects the
 candidate that best balances factual accuracy and tone fidelity.
 

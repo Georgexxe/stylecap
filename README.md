@@ -10,7 +10,7 @@ StyleCap generates grounded captions for video clips in four requested voices:
 The evaluation path uses three model calls per clip:
 
 1. Perceive sampled frames into a factual scene sheet.
-2. Generate three candidates for every requested style in one batched call.
+2. Generate four candidates for every requested style in one batched call.
 3. Re-check representative frames and select the most accurate, style-faithful candidate
    for each style in one batched multimodal call.
 
@@ -59,6 +59,8 @@ Never commit credentials. Copy `.env.example` for local development and set:
 - `FIREWORKS_API_KEY`: your Fireworks API key.
 - `STYLECAP_GEMMA_DEPLOYMENT`: optional override for the built-in submission deployment.
   It powers perception, caption generation, and selection.
+- `STYLECAP_SERVERLESS_FALLBACK_MODEL`: optional reliability fallback used only when the
+  dedicated deployment returns a documented infrastructure failure.
 - `STYLECAP_PERCEPTION_MODEL`, `STYLECAP_STYLE_MODEL`, and
   `STYLECAP_JUDGE_MODELS`: optional experiment-only overrides.
 - `STYLECAP_ENABLE_ASR=1`: optional local Whisper transcription. It is disabled by default to avoid cold-start downloads during evaluation.

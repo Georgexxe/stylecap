@@ -332,7 +332,9 @@ with create_tab:
                         def report(stage: str) -> None:
                             st.write(progress_labels[stage])
 
-                        result = pipeline.process_clip(str(clip_path), progress=report)
+                        generated_result = pipeline.process_clip(
+                            str(clip_path), progress=report
+                        )
                         elapsed = time.perf_counter() - started
                         status.update(
                             label=f"Four captions ready in {elapsed:.1f}s",
@@ -343,14 +345,14 @@ with create_tab:
                     st.error(f"Processing failed: {exc}")
                     st.stop()
 
-            st.session_state["stylecap_result"] = result
+            st.session_state["stylecap_result"] = generated_result
             st.session_state["stylecap_elapsed"] = elapsed
 
-    result = st.session_state.get("stylecap_result")
-    if result is not None:
+    saved_result = st.session_state.get("stylecap_result")
+    if isinstance(saved_result, pipeline.PipelineResult):
         st.divider()
         st.subheader("Grounded result")
-        facts = result.facts
+        facts = saved_result.facts
         action_summary = "; ".join(facts.actions[:3]) or "No action detected"
         st.markdown(
             f"""
@@ -363,14 +365,14 @@ with create_tab:
         )
 
         left, right = st.columns(2, gap="large")
-        for index, caption in enumerate(result.captions):
+        for index, caption in enumerate(saved_result.captions):
             with (left if index % 2 == 0 else right):
                 render_caption_card(caption.style, caption.caption)
 
         payload = {
             "facts": facts.model_dump(mode="json"),
             "captions": {
-                caption.style: caption.caption for caption in result.captions
+                caption.style: caption.caption for caption in saved_result.captions
             },
         }
         download_col, detail_col = st.columns([1, 2], gap="large")
