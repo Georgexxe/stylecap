@@ -1,5 +1,6 @@
 """Streamlit demo for the StyleCap production pipeline."""
 
+import base64
 import html
 import json
 import os
@@ -11,7 +12,10 @@ import streamlit as st
 
 from src import config, ingest, llm, pipeline
 
-st.set_page_config(page_title="StyleCap", page_icon="SC", layout="wide")
+APP_DIR = Path(__file__).parent
+LOGO_PATH = APP_DIR / "assets" / "logo.png"
+
+st.set_page_config(page_title="StyleCap", page_icon=str(LOGO_PATH), layout="wide")
 st.markdown(
     """
     <style>
@@ -83,6 +87,27 @@ st.markdown(
         padding-left: 0;
         padding-right: 0;
     }
+    .brand-header {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        margin: 0.05rem 0 0.2rem 0;
+    }
+    .brand-logo {
+        width: 58px;
+        height: 58px;
+        object-fit: contain;
+        flex: 0 0 58px;
+    }
+    .brand-copy h1 {
+        margin: 0 !important;
+        line-height: 1.04;
+    }
+    .brand-copy p {
+        color: var(--muted) !important;
+        margin: 0.28rem 0 0 0;
+        font-size: 0.92rem;
+    }
     .status-line {
         display: flex;
         align-items: center;
@@ -141,6 +166,7 @@ st.markdown(
     @media (max-width: 700px) {
         .block-container { padding: 1rem 0.85rem 2rem; }
         h1 { font-size: 1.75rem !important; }
+        .brand-logo { width: 48px; height: 48px; flex-basis: 48px; }
         .caption-card { min-height: auto; }
     }
     </style>
@@ -183,8 +209,19 @@ configured = all(
     ]
 )
 
-st.title("StyleCap")
-st.caption("Four voices. One grounded view of the video.")
+logo_data = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
+st.markdown(
+    f"""
+    <div class="brand-header">
+        <img class="brand-logo" src="data:image/png;base64,{logo_data}" alt="StyleCap logo">
+        <div class="brand-copy">
+            <h1>StyleCap</h1>
+            <p>Four voices. One grounded view of the video.</p>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 st.markdown(
     '<div class="status-line"><span class="status-dot"></span>'
     + ("Live Gemma inference ready" if configured else "Recorded benchmark mode")
