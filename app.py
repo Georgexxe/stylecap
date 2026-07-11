@@ -38,15 +38,11 @@ st.markdown(
         padding-top: 1.6rem;
         padding-bottom: 3rem;
     }
-    [data-testid="stSidebar"] {
-        background: #edf0f1;
-        border-right: 1px solid #d8dddf;
-    }
     [data-testid="stHeader"] {
         background: rgba(247, 248, 246, 0.94);
     }
     .stApp h1, .stApp h2, .stApp h3, .stApp p,
-    .stApp label, [data-testid="stSidebar"] * {
+    .stApp label {
         color: var(--ink);
     }
     h1, h2, h3, p, label, button { letter-spacing: 0 !important; }
@@ -91,7 +87,9 @@ st.markdown(
         display: flex;
         align-items: center;
         gap: 0.9rem;
-        margin: 0.05rem 0 0.2rem 0;
+        margin: 0.05rem 0 1.25rem 0;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--line);
     }
     .brand-logo {
         width: 58px;
@@ -103,21 +101,17 @@ st.markdown(
         margin: 0 !important;
         line-height: 1.04;
     }
-    .brand-copy p {
-        color: var(--muted) !important;
-        margin: 0.28rem 0 0 0;
-        font-size: 0.92rem;
-    }
-    .status-line {
-        display: flex;
+    .brand-spacer { flex: 1; }
+    .model-status {
+        display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
-        margin: 0.35rem 0 1rem 0;
+        gap: 0.45rem;
         color: var(--green);
-        font-size: 0.88rem;
-        font-weight: 650;
+        font-size: 0.82rem;
+        font-weight: 700;
+        white-space: nowrap;
     }
-    .status-dot {
+    .model-status-dot {
         width: 8px;
         height: 8px;
         border-radius: 50%;
@@ -216,32 +210,21 @@ st.markdown(
         <img class="brand-logo" src="data:image/png;base64,{logo_data}" alt="StyleCap logo">
         <div class="brand-copy">
             <h1>StyleCap</h1>
-            <p>Four voices. One grounded view of the video.</p>
+        </div>
+        <div class="brand-spacer"></div>
+        <div class="model-status"><span class="model-status-dot"></span>
+            {"Gemma 4 ready" if configured else "Preview mode"}
         </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
-st.markdown(
-    '<div class="status-line"><span class="status-dot"></span>'
-    + ("Live Gemma inference ready" if configured else "Recorded benchmark mode")
-    + "</div>",
-    unsafe_allow_html=True,
-)
+mock_mode = not configured
 
-with st.sidebar:
-    st.subheader("Inference")
-    live_mode = st.toggle("Live Gemma", value=configured, disabled=not configured)
-    mock_mode = not live_mode
-    st.caption("Gemma 4 · Fireworks AI")
-    st.divider()
-    st.caption("AMD Developer Hackathon: ACT II")
-    st.caption("Track 2 · Video Captioning")
-
-create_tab, benchmark_tab = st.tabs(["Create captions", "Benchmark clips"])
+benchmark_tab, create_tab = st.tabs(["Benchmark examples", "Try your clip"])
 
 with create_tab:
-    st.subheader("Choose a video")
+    st.subheader("Add a video")
     source_mode = st.radio(
         "Video source",
         ["Upload video", "Paste video link"],
@@ -287,7 +270,6 @@ with create_tab:
                 <div class="source-summary">
                     <strong>Ready to analyze</strong>
                     <p>{html.escape(source_label)}</p>
-                    <p>Observe · Generate · Verify · Select</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -358,7 +340,7 @@ with create_tab:
             f"""
             <div class="fact-strip">
                 <p><strong>{html.escape(facts.setting)}</strong> ·
-                {html.escape(action_summary)} · {html.escape(facts.mood)}</p>
+                {html.escape(action_summary)}</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -392,7 +374,7 @@ with create_tab:
 with benchmark_tab:
     gallery_path = Path(__file__).parent / "examples" / "demo_gallery.json"
     gallery = json.loads(gallery_path.read_text(encoding="utf-8"))
-    selected_title = st.selectbox("Official evaluation clip", [item["title"] for item in gallery])
+    selected_title = st.selectbox("Example clip", [item["title"] for item in gallery])
     selected = next(item for item in gallery if item["title"] == selected_title)
 
     video_col, facts_col = st.columns([3, 2], gap="large")
