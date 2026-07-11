@@ -11,7 +11,8 @@ The evaluation path uses three model calls per clip:
 
 1. Perceive sampled frames into a factual scene sheet.
 2. Generate three candidates for every requested style in one batched call.
-3. Select the most accurate, style-faithful candidate for each style in one batched call.
+3. Re-check representative frames and select the most accurate, style-faithful candidate
+   for each style in one batched multimodal call.
 
 This compact path replaces the slower per-candidate judge loop and is designed for the
 hackathon's 10-minute container limit and hidden set of approximately 12 clips.
@@ -56,9 +57,8 @@ Output:
 Never commit credentials. Copy `.env.example` for local development and set:
 
 - `FIREWORKS_API_KEY`: your Fireworks API key.
-- `STYLECAP_GEMMA_DEPLOYMENT`: the full on-demand endpoint returned by Fireworks,
-  such as `accounts/<account>/deployments/<deployment>`. It powers perception,
-  caption generation, and selection.
+- `STYLECAP_GEMMA_DEPLOYMENT`: optional override for the built-in submission deployment.
+  It powers perception, caption generation, and selection.
 - `STYLECAP_PERCEPTION_MODEL`, `STYLECAP_STYLE_MODEL`, and
   `STYLECAP_JUDGE_MODELS`: optional experiment-only overrides.
 - `STYLECAP_ENABLE_ASR=1`: optional local Whisper transcription. It is disabled by default to avoid cold-start downloads during evaluation.
@@ -108,7 +108,6 @@ Local evaluator run:
 ```bash
 docker run --rm \
   -e FIREWORKS_API_KEY \
-  -e STYLECAP_GEMMA_DEPLOYMENT \
   -v "$PWD/input:/input:ro" \
   -v "$PWD/output:/output" \
   ghcr.io/georgexxe/stylecap:latest
@@ -119,7 +118,7 @@ docker run --rm \
 - `src/evaluator.py`: published Track 2 input/output contract.
 - `src/ingest.py`: bounded URL download, frame extraction, and optional ASR.
 - `src/perceive.py`: grounded fact-sheet extraction.
-- `src/compact.py`: two-call batched caption generation and selection.
+- `src/compact.py`: two-call batched generation and frame-verified selection.
 - `app.py`: Streamlit demo using the production pipeline.
 - `tests/`: contract, download, selection, and pipeline tests.
 

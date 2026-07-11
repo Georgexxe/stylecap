@@ -25,7 +25,11 @@ class PipelineTests(unittest.TestCase):
         final = [FinalCaption(clip_id="clip-a", style="formal", caption="A person waves.")]
 
         with (
-            patch.object(pipeline.ingest, "run", return_value={"clip_id": "clip-a"}) as ingest_run,
+            patch.object(
+                pipeline.ingest,
+                "run",
+                return_value={"clip_id": "clip-a", "frames": ["frame-a.jpg"]},
+            ) as ingest_run,
             patch.object(pipeline.perceive, "run", return_value=facts) as perceive_run,
             patch.object(pipeline.compact, "run", return_value=final) as compact_run,
         ):
@@ -35,7 +39,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(result.captions, final)
         ingest_run.assert_called_once_with("clip-a.mp4")
         perceive_run.assert_called_once()
-        compact_run.assert_called_once_with(facts, None)
+        compact_run.assert_called_once_with(facts, None, frame_paths=["frame-a.jpg"])
 
     def test_process_task_downloads_video_and_returns_nested_captions(self) -> None:
         task = EvaluationTask(

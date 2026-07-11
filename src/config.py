@@ -2,7 +2,8 @@
 
 import os
 
-GEMMA_DEPLOYMENT = os.environ.get("STYLECAP_GEMMA_DEPLOYMENT", "")
+DEFAULT_GEMMA_DEPLOYMENT = "accounts/g18797056-9yumhha51c/deployments/ssme9at7"
+GEMMA_DEPLOYMENT = os.environ.get("STYLECAP_GEMMA_DEPLOYMENT", DEFAULT_GEMMA_DEPLOYMENT)
 PERCEPTION_MODEL = os.environ.get("STYLECAP_PERCEPTION_MODEL", GEMMA_DEPLOYMENT)
 STYLE_MODEL = os.environ.get("STYLECAP_STYLE_MODEL", GEMMA_DEPLOYMENT)
 JUDGE_MODELS = [
@@ -41,7 +42,5 @@ def validate_runtime() -> None:
     missing = []
     if not os.environ.get("FIREWORKS_API_KEY"):
         missing.append("FIREWORKS_API_KEY")
-    if not GEMMA_DEPLOYMENT:
-        missing.append("STYLECAP_GEMMA_DEPLOYMENT")
     if missing:
         raise RuntimeError(f"missing runtime configuration: {', '.join(missing)}")

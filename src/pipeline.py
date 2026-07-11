@@ -20,7 +20,7 @@ def process_clip(clip_path: str, styles: list[str] | None = None) -> PipelineRes
     """Run the complete pipeline for one local video clip."""
     media = ingest.run(clip_path)
     facts = perceive.run(media)
-    captions = compact.run(facts, styles)
+    captions = compact.run(facts, styles, frame_paths=media["frames"])
     return PipelineResult(facts=facts, captions=captions)
 
 
