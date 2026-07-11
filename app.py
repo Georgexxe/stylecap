@@ -38,8 +38,9 @@ st.markdown(
         padding-top: 1.6rem;
         padding-bottom: 3rem;
     }
-    [data-testid="stHeader"] {
-        background: rgba(247, 248, 246, 0.94);
+    [data-testid="stHeader"], [data-testid="stToolbar"],
+    [data-testid="stDecoration"], #MainMenu, footer {
+        display: none !important;
     }
     .stApp h1, .stApp h2, .stApp h3, .stApp p,
     .stApp label {
