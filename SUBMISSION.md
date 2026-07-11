@@ -50,7 +50,8 @@ See `BENCHMARK.md` for method, limitations, and representative observations.
 
 ## Judge access
 
-The hosted demo is public and provides both an immediate recorded benchmark gallery and
-live upload inference through the production Fireworks deployment. The public container
-implements the published evaluator contract and accepts standard Fireworks configuration
-through environment variables.
+The hosted demo is public and leads with live inference from an uploaded clip or direct
+public video URL. It keeps the source video beside the workflow, exposes grounding evidence,
+and returns four downloadable caption styles. A separate benchmark view provides immediate
+recorded evidence. The public container implements the published evaluator contract and
+accepts standard Fireworks configuration through environment variables.

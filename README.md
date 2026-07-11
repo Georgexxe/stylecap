@@ -91,9 +91,11 @@ Run the Streamlit demo:
 .\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
-The public Streamlit deployment includes the system `ffmpeg` package required for
-uploaded video decoding. Live inference may take roughly one minute on the first request
-while the dedicated Fireworks replica scales from zero; subsequent requests are warm.
+The public Streamlit deployment accepts an uploaded clip or a direct public video URL,
+keeps the source video visible during review, and returns grounding evidence with four
+downloadable captions. It includes the system `ffmpeg` package required for video decoding.
+Live inference may take roughly one minute on the first request while the dedicated
+Fireworks replica scales from zero; subsequent requests are warm.
 
 ## Docker
 
