@@ -60,6 +60,11 @@ st.markdown(
     [data-testid="stFileUploaderDropzone"] button * {
         color: #ffffff !important;
     }
+    [data-testid="stFileUploaderDropzone"] button {
+        background: var(--red) !important;
+        border-color: var(--red) !important;
+        border-radius: 6px !important;
+    }
     .stButton > button[kind="primary"],
     .stDownloadButton > button {
         background: var(--red);
