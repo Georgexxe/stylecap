@@ -1,13 +1,15 @@
 """Tests for evaluator video URL ingestion."""
 
 import functools
+import socket
 import tempfile
 import threading
 import unittest
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import Mock, patch
 
-from src.ingest import download_video
+from src.ingest import DownloadError, download_video, validate_video_url
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -33,9 +35,9 @@ class DownloadTests(unittest.TestCase):
             thread.start()
             try:
                 url = f"http://127.0.0.1:{server.server_port}/clip.mp4"
-                first = download_video(url, Path(cache_dir))
+                first = download_video(url, Path(cache_dir), allow_private=True)
                 source.write_bytes(b"changed-after-first-download")
-                second = download_video(url, Path(cache_dir))
+                second = download_video(url, Path(cache_dir), allow_private=True)
             finally:
                 server.shutdown()
                 thread.join(timeout=2)
@@ -43,6 +45,21 @@ class DownloadTests(unittest.TestCase):
 
             self.assertEqual(first, second)
             self.assertEqual(first.read_bytes(), b"fake-video-content")
+
+    def test_validate_video_url_rejects_private_targets(self) -> None:
+        with self.assertRaises(DownloadError):
+            validate_video_url("http://127.0.0.1/private.mp4")
+
+    def test_validate_video_url_rejects_non_http_schemes(self) -> None:
+        with self.assertRaises(DownloadError):
+            validate_video_url("file:///tmp/private.mp4")
+
+    @patch("src.ingest.socket.getaddrinfo")
+    def test_validate_video_url_accepts_public_targets(self, getaddrinfo: Mock) -> None:
+        getaddrinfo.return_value = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("8.8.8.8", 443))
+        ]
+        validate_video_url("https://media.example.com/clip.mp4")
 
 
 if __name__ == "__main__":

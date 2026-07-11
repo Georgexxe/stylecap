@@ -2,11 +2,14 @@
 
 import base64
 import hashlib
+import ipaddress
 import json
 import os
+import socket
 import subprocess
 from pathlib import Path
 from typing import TypedDict, cast
+from urllib.parse import urlparse
 
 import httpx
 
@@ -35,8 +38,39 @@ class DownloadError(RuntimeError):
     """Raised when an evaluator clip cannot be downloaded safely."""
 
 
-def download_video(url: str, cache_dir: Path, max_bytes: int = MAX_VIDEO_BYTES) -> Path:
+def validate_video_url(url: str, allow_private: bool = False) -> None:
+    """Reject malformed URLs and private-network targets in the public demo."""
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise DownloadError("video link must be a public HTTP or HTTPS URL")
+    if parsed.username or parsed.password:
+        raise DownloadError("video link must not contain embedded credentials")
+    if allow_private:
+        return
+
+    try:
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        addresses = {
+            item[4][0]
+            for item in socket.getaddrinfo(parsed.hostname, port, type=socket.SOCK_STREAM)
+        }
+    except socket.gaierror as exc:
+        raise DownloadError(f"could not resolve video host: {parsed.hostname}") from exc
+
+    for address in addresses:
+        ip = ipaddress.ip_address(address)
+        if not ip.is_global:
+            raise DownloadError("video link must resolve to a public internet address")
+
+
+def download_video(
+    url: str,
+    cache_dir: Path,
+    max_bytes: int = MAX_VIDEO_BYTES,
+    allow_private: bool = False,
+) -> Path:
     """Download a remote evaluation clip once and return its cached path."""
+    validate_video_url(url, allow_private=allow_private)
     cache_dir.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:20]
     destination = cache_dir / f"{digest}.mp4"

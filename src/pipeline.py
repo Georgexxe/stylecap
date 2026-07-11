@@ -1,5 +1,6 @@
 """Reusable StyleCap pipeline shared by the evaluator, CLI, and demo app."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -16,11 +17,23 @@ class PipelineResult:
     captions: list[FinalCaption]
 
 
-def process_clip(clip_path: str, styles: list[str] | None = None) -> PipelineResult:
+def process_clip(
+    clip_path: str,
+    styles: list[str] | None = None,
+    progress: Callable[[str], None] | None = None,
+) -> PipelineResult:
     """Run the complete pipeline for one local video clip."""
+    if progress:
+        progress("sample")
     media = ingest.run(clip_path)
+    if progress:
+        progress("perceive")
     facts = perceive.run(media)
+    if progress:
+        progress("style")
     captions = compact.run(facts, styles, frame_paths=media["frames"])
+    if progress:
+        progress("select")
     return PipelineResult(facts=facts, captions=captions)
 
 
