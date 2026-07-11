@@ -117,18 +117,23 @@ st.markdown(
         border-radius: 50%;
         background: var(--green);
     }
-    .source-summary {
-        border-top: 3px solid var(--blue);
-        background: var(--panel);
-        border-radius: 6px;
-        padding: 1.05rem 1.1rem;
-        border-left: 1px solid var(--line);
-        border-right: 1px solid var(--line);
-        border-bottom: 1px solid var(--line);
-        min-height: 178px;
+    .source-ready {
+        padding-top: 0.4rem;
     }
-    .source-summary strong { font-size: 1rem; }
-    .source-summary p { color: var(--muted); margin: 0.55rem 0 0 0; }
+    .source-ready-label {
+        color: var(--green);
+        font-size: 0.78rem;
+        font-weight: 750;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+    }
+    .source-ready-name {
+        color: var(--ink);
+        font-size: 1rem;
+        font-weight: 650;
+        overflow-wrap: anywhere;
+        margin-bottom: 1.2rem;
+    }
     .caption-card {
         background: var(--panel);
         border: 1px solid var(--line);
@@ -225,30 +230,30 @@ benchmark_tab, create_tab = st.tabs(["Benchmark examples", "Try your clip"])
 
 with create_tab:
     st.subheader("Add a video")
-    source_mode = st.radio(
-        "Video source",
-        ["Upload video", "Paste video link"],
-        horizontal=True,
-        label_visibility="collapsed",
-    )
-
-    uploaded = None
-    source_url = ""
-    if source_mode == "Upload video":
+    upload_col, link_col = st.columns(2, gap="large")
+    with upload_col:
+        st.markdown("**Upload a file**")
         uploaded = st.file_uploader(
             "Upload video",
             type=["mp4", "mov", "mkv", "webm"],
             accept_multiple_files=False,
             help="MP4, MOV, MKV, or WebM up to 512 MB",
+            label_visibility="collapsed",
         )
-    else:
+        st.caption("MP4, MOV, MKV, or WebM")
+    with link_col:
+        st.markdown("**Paste a direct link**")
         source_url = st.text_input(
             "Direct video link",
             placeholder="https://example.com/video.mp4",
+            label_visibility="collapsed",
         ).strip()
-        st.caption("Public direct links to MP4, MOV, MKV, or WebM files")
+        st.caption("Public MP4, MOV, MKV, or WebM URL")
 
-    has_source = uploaded is not None or bool(source_url)
+    source_conflict = uploaded is not None and bool(source_url)
+    if source_conflict:
+        st.warning("Choose either an uploaded file or a direct link.")
+    has_source = (uploaded is not None or bool(source_url)) and not source_conflict
     source_key = (
         f"upload:{uploaded.name}:{uploaded.size}"
         if uploaded is not None
@@ -267,9 +272,9 @@ with create_tab:
             source_label = uploaded.name if uploaded is not None else source_url
             st.markdown(
                 f"""
-                <div class="source-summary">
-                    <strong>Ready to analyze</strong>
-                    <p>{html.escape(source_label)}</p>
+                <div class="source-ready">
+                    <div class="source-ready-label">Ready to analyze</div>
+                    <div class="source-ready-name">{html.escape(source_label)}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -333,7 +338,7 @@ with create_tab:
     saved_result = st.session_state.get("stylecap_result")
     if isinstance(saved_result, pipeline.PipelineResult):
         st.divider()
-        st.subheader("Grounded result")
+        st.subheader("Captions")
         facts = saved_result.facts
         action_summary = "; ".join(facts.actions[:3]) or "No action detected"
         st.markdown(
