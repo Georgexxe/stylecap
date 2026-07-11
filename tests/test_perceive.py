@@ -35,6 +35,19 @@ class PerceptionCacheTests(unittest.TestCase):
         self.assertNotEqual(model_a, mock_model_a)
         self.assertTrue(model_a.endswith(".json"))
 
+    def test_cache_path_changes_with_prompt(self) -> None:
+        media = {
+            "clip_id": "clip-a",
+            "clip_hash": "abc123",
+            "frames": [],
+            "transcript": [],
+        }
+        original = perceive._cache_path(media)
+        with patch.object(perceive, "SYSTEM", perceive.SYSTEM + " updated"):
+            updated = perceive._cache_path(media)
+
+        self.assertNotEqual(original, updated)
+
 
 if __name__ == "__main__":
     unittest.main()

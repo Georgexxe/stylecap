@@ -25,8 +25,13 @@ class CompactTests(unittest.TestCase):
     def test_run_batches_generation_and_selection(self) -> None:
         generation = {
             "candidates": {
-                "formal": ["formal zero", "formal one", "formal two"],
-                "sarcastic": ["sarcastic zero", "sarcastic one", "sarcastic two"],
+                "formal": ["formal zero", "formal one", "formal two", "formal three"],
+                "sarcastic": [
+                    "sarcastic zero",
+                    "sarcastic one",
+                    "sarcastic two",
+                    "sarcastic three",
+                ],
             }
         }
         selection = {"selected": {"formal": 1, "sarcastic": 2}}
@@ -43,7 +48,7 @@ class CompactTests(unittest.TestCase):
         )
 
     def test_run_rejects_an_out_of_range_selection(self) -> None:
-        generation = {"candidates": {"formal": ["zero", "one", "two"]}}
+        generation = {"candidates": {"formal": ["zero", "one", "two", "three"]}}
         selection = {"selected": {"formal": 9}}
 
         with patch.object(compact.llm, "chat_json", side_effect=[generation, selection]):
@@ -62,7 +67,7 @@ class CompactTests(unittest.TestCase):
                 ],
             }
         )
-        generation = {"candidates": {"formal": ["zero", "one", "two"]}}
+        generation = {"candidates": {"formal": ["zero", "one", "two", "three"]}}
         selection = {"selected": {"formal": 0}}
 
         with patch.object(
@@ -73,10 +78,12 @@ class CompactTests(unittest.TestCase):
         generation_prompt = chat_json.call_args_list[0].args[1][1]["content"]
         self.assertNotIn("secretly frustrated", generation_prompt)
         self.assertNotIn("late for a meeting", generation_prompt)
+        self.assertNotIn('"t":', generation_prompt)
+        self.assertIn("timeline_events", generation_prompt)
         self.assertIn("the runner ties a shoe", generation_prompt)
 
     def test_selection_receives_representative_video_frames(self) -> None:
-        generation = {"candidates": {"formal": ["zero", "one", "two"]}}
+        generation = {"candidates": {"formal": ["zero", "one", "two", "three"]}}
         selection = {"selected": {"formal": 0}}
 
         with (
@@ -96,7 +103,7 @@ class CompactTests(unittest.TestCase):
 
         selection_content = chat_json.call_args_list[1].args[1][1]["content"]
         images = [item for item in selection_content if item["type"] == "image_url"]
-        self.assertEqual(len(images), compact.MAX_SELECTION_FRAMES)
+        self.assertEqual(len(images), 8)
         self.assertIn("frame-0.jpg", images[0]["image_url"]["url"])
         self.assertIn("frame-7.jpg", images[-1]["image_url"]["url"])
 

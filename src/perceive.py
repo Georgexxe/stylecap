@@ -32,7 +32,11 @@ Omit uncertain, partially obscured, or guessed text.
 
 def _cache_path(media: ingest.Media) -> str:
     """Keep mock output and model-specific perception results isolated."""
-    identity = f"{config.PERCEPTION_MODEL}|mock={int(llm.MOCK)}"
+    prompt_hash = hashlib.sha256(SYSTEM.encode()).hexdigest()[:12]
+    identity = (
+        f"{config.PERCEPTION_MODEL}|mock={int(llm.MOCK)}|prompt={prompt_hash}|"
+        f"fps={config.TARGET_FPS}|frames={config.MAX_FRAMES}"
+    )
     model_key = hashlib.sha256(identity.encode()).hexdigest()[:12]
     return os.path.join(config.CACHE_DIR, media["clip_hash"], f"factsheet-{model_key}.json")
 

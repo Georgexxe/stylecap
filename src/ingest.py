@@ -121,6 +121,17 @@ def _cache_dir(clip_hash: str) -> str:
     return d
 
 
+def _evenly_cap(items: list[str], limit: int) -> list[str]:
+    """Keep evenly spaced evidence while always preserving both endpoints."""
+    if len(items) <= limit:
+        return items
+    if limit < 2:
+        return items[:limit]
+    last = len(items) - 1
+    indices = [round(index * last / (limit - 1)) for index in range(limit)]
+    return [items[index] for index in dict.fromkeys(indices)]
+
+
 def _extract_frames(clip: str, out_dir: str) -> list[str]:
     """Extract deterministic temporal samples capped at ``MAX_FRAMES``."""
     for stale_frame in Path(out_dir).glob("*.jpg"):
@@ -143,9 +154,7 @@ def _extract_frames(clip: str, out_dir: str) -> list[str]:
         check=True,
     )
     frames = sorted(f for f in os.listdir(out_dir) if f.endswith(".jpg"))
-    if len(frames) > config.MAX_FRAMES:
-        step = len(frames) / config.MAX_FRAMES
-        frames = [frames[int(i * step)] for i in range(config.MAX_FRAMES)]
+    frames = _evenly_cap(frames, config.MAX_FRAMES)
     return [os.path.join(out_dir, f) for f in frames]
 
 
@@ -173,7 +182,7 @@ def run(clip_path: str) -> Media:
     """Returns {clip_id, clip_hash, frames: [paths], transcript: [{t, text}]}, cached."""
     ch = _clip_hash(clip_path)
     cdir = _cache_dir(ch)
-    meta_path = os.path.join(cdir, "ingest.json")
+    meta_path = os.path.join(cdir, f"ingest-{config.INGEST_CACHE_VERSION}.json")
     if os.path.exists(meta_path):
         with open(meta_path, encoding="utf-8") as f:
             return cast(Media, json.load(f))

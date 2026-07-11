@@ -6,33 +6,35 @@ from typing import Any, cast
 from . import config, ingest, llm
 from .schemas import FactSheet, FinalCaption
 
-CANDIDATES_PER_STYLE = 3
-MAX_SELECTION_FRAMES = 4
+CANDIDATES_PER_STYLE = 4
+MAX_SELECTION_FRAMES = 12
 
 SCORING_STYLE_RULES = """formal:
-- One concise sentence in neutral broadcast language.
-- State the visible subject, main action, and useful setting detail literally.
+- Write 18-38 words in neutral broadcast language.
+- State the visible subject, main action, and one useful setting detail literally.
+- No humor, opinion, inferred emotion, or metaphor.
 
 sarcastic:
-- One or two concise sentences with clear dry irony.
+- Write 18-42 words with unmistakable dry irony and a clean final turn.
 - Keep the visible subject and action explicit; add no motive, backstory, dialogue, or outcome.
 - Aim the irony at a specific visible detail or contrast.
 - Avoid generic filler such as "truly thrilling" or "a groundbreaking event."
 
 humorous_tech:
-- One or two concise sentences with one familiar software metaphor.
+- Write 18-42 words with one familiar software metaphor and a clear punchline.
 - State the visible subject and action explicitly before or inside the metaphor.
 - Do not invent an error message, interface, system failure, user intent, or unseen result.
 - Tie the software metaphor to the clip's exact visible action, not merely its subject.
 
 humorous_non_tech:
-- One or two concise sentences with a warm observational punchline.
+- Write 18-42 words with a warm, unmistakable observational punchline.
 - State the visible subject and action explicitly.
 - Build the punchline from a specific visible action or contrast; avoid generic "chaos."
+- Use everyday language only; no software, business, or internet jargon.
 - Do not invent a destination, relationship, thought, plan, dialogue, or backstory."""
 
 GENERATION_SYSTEM = """You write captions for an automated video-grounding evaluator.
-Generate exactly three distinct candidates for every requested style.
+Generate exactly four distinct candidates for every requested style.
 
 ACCURACY IS THE PRIMARY SCORE:
 - Every concrete claim must be directly supported by the supplied observable facts.
@@ -44,8 +46,15 @@ ACCURACY IS THE PRIMARY SCORE:
 - Prefer precise, plain wording over clever but weakly grounded wording.
 - Do not use labels, preambles, hashtags, emojis, or quotation marks around the whole caption.
 
+FOR EACH STYLE, MAKE THE FOUR OPTIONS PURPOSEFULLY DIFFERENT:
+0. Literal-safe: maximum factual clarity with restrained style.
+1. Balanced: strong style while preserving every central fact.
+2. Detail-led: build the tone around the most distinctive visible action or contrast.
+3. Punchline-led: the boldest grounded version, with no unsupported claim.
+Do not repeat the same sentence with small word substitutions.
+
 Return only JSON in this shape:
-{"candidates": {"<style>": ["candidate 0", "candidate 1", "candidate 2"]}}.
+{"candidates": {"<style>": ["candidate 0", "candidate 1", "candidate 2", "candidate 3"]}}.
 
 STYLE RULES:
 {style_rules}"""
@@ -55,7 +64,8 @@ For each requested style, select one candidate using this priority order:
 1. Direct factual support for every claim; any unsupported assumption is disqualifying.
 2. Coverage of the main visible subject and action.
 3. Clear match to the requested style.
-4. Concision and natural wording.
+4. Specificity: reward wording that depends on a distinctive detail from this exact clip.
+5. Concision and natural wording.
 
 Reject invented intent, thoughts, emotions, identity, relationships, backstory, dialogue,
 causes, destinations, quantities, error messages, interface behavior, or unseen outcomes.
@@ -63,6 +73,10 @@ Reject captions whose joke replaces the actual video description. Prefer a sligh
 caption over a cleverer caption with weaker grounding. Among equally grounded candidates,
 reject generic jokes that could be pasted onto an unrelated video and choose the candidate
 whose tone depends on a concrete detail from this clip.
+Formal must remain entirely literal. Sarcastic must read as dry irony. Humorous-tech must
+contain a coherent software metaphor. Humorous-non-tech must be clearly funny in everyday
+language with no technical jargon. Do not choose a safe candidate when an equally grounded
+candidate has a clearer style match.
 Return only JSON in this shape:
 {"selected": {"<style>": 0}}.
 The value for each style must be the zero-based index of one supplied candidate."""
@@ -103,6 +117,13 @@ def _selection_frames(frame_paths: list[str]) -> list[str]:
     return [frame_paths[index] for index in dict.fromkeys(indices)]
 
 
+def _scoring_facts(facts: FactSheet) -> dict[str, Any]:
+    """Remove subjective metadata and unsupported model-invented timestamps."""
+    data = facts.model_dump(exclude={"humor_hooks", "mood"})
+    data["timeline_events"] = [beat["event"] for beat in data.pop("timeline", [])]
+    return data
+
+
 def run(
     facts: FactSheet,
     styles: list[str] | None = None,
@@ -114,7 +135,7 @@ def run(
     unknown = set(requested) - set(config.STYLES)
     if unknown:
         raise CompactCaptionError(f"unknown requested styles: {sorted(unknown)}")
-    scoring_facts = facts.model_dump(exclude={"humor_hooks", "mood"})
+    scoring_facts = _scoring_facts(facts)
     generated = llm.chat_json(
         config.STYLE_MODEL,
         [
@@ -147,7 +168,14 @@ def run(
             ),
         }
     ]
-    for frame_path in _selection_frames(frame_paths or []):
+    evidence_frames = _selection_frames(frame_paths or [])
+    for frame_number, frame_path in enumerate(evidence_frames, start=1):
+        selection_content.append(
+            {
+                "type": "text",
+                "text": f"Evidence frame {frame_number} of {len(evidence_frames)}:",
+            }
+        )
         selection_content.append(
             {
                 "type": "image_url",
@@ -172,14 +200,14 @@ def run(
 
     results = []
     for style in requested:
-        index = selected.get(style)
-        if not isinstance(index, int) or not 0 <= index < CANDIDATES_PER_STYLE:
+        selected_index = selected.get(style)
+        if not isinstance(selected_index, int) or not 0 <= selected_index < CANDIDATES_PER_STYLE:
             raise CompactCaptionError(f"{style}: selected index is out of range")
         results.append(
             FinalCaption(
                 clip_id=facts.clip_id,
                 style=style,
-                caption=candidates[style][index].strip(),
+                caption=candidates[style][selected_index].strip(),
             )
         )
     return results

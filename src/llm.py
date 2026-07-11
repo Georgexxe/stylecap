@@ -13,7 +13,7 @@ from typing import Any, cast
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from openai.types.shared_params import ResponseFormatJSONObject
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, stop_after_attempt, wait_exponential, wait_fixed
 
 from . import budget, config
 
@@ -30,6 +30,8 @@ def _get_client() -> OpenAI:
         _client = OpenAI(
             base_url=config.FIREWORKS_BASE_URL,
             api_key=os.environ["FIREWORKS_API_KEY"],
+            max_retries=0,
+            timeout=45.0,
         )
     return _client
 
@@ -39,12 +41,12 @@ def _mock_response(messages: list[Message], want_json: bool) -> str:
     seed = hashlib.sha256(json.dumps(messages, default=str).encode()).hexdigest()[:8]
     text = " ".join(str(m.get("content", ""))[:2000] for m in messages).lower()
     # Several prompts contain "fact sheet", so match specific intents before perception.
-    if want_json and "exactly three" in text and "candidates" in text:
+    if want_json and "exactly four" in text and "candidates" in text:
         styles = [style for style in config.STYLES if style in text] or config.STYLES
         return json.dumps(
             {
                 "candidates": {
-                    style: [f"Mock {style} caption candidate {index}." for index in range(3)]
+                    style: [f"Mock {style} caption candidate {index}." for index in range(4)]
                     for style in styles
                 }
             }
@@ -93,7 +95,7 @@ def _mock_response(messages: list[Message], want_json: bool) -> str:
     )
 
 
-@retry(stop=stop_after_attempt(10), wait=wait_exponential(min=2, max=20))
+@retry(stop=stop_after_attempt(6), wait=wait_exponential(min=2, max=20), reraise=True)
 def _call(
     model: str,
     messages: list[Message],
@@ -145,6 +147,7 @@ def chat(
     return out
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
 def chat_json(model: str, messages: list[Message], stage: str, **kw: Any) -> dict[str, Any]:
     raw = chat(model, messages, stage, want_json=True, **kw)
     # tolerate code fences some models emit despite json mode

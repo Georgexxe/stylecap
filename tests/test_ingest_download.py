@@ -9,7 +9,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from src.ingest import DownloadError, download_video, validate_video_url
+from src.ingest import DownloadError, _evenly_cap, download_video, validate_video_url
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -45,6 +45,14 @@ class DownloadTests(unittest.TestCase):
 
             self.assertEqual(first, second)
             self.assertEqual(first.read_bytes(), b"fake-video-content")
+
+    def test_evenly_cap_preserves_first_and_last_evidence(self) -> None:
+        frames = [f"frame-{index}" for index in range(25)]
+        selected = _evenly_cap(frames, 8)
+
+        self.assertEqual(len(selected), 8)
+        self.assertEqual(selected[0], "frame-0")
+        self.assertEqual(selected[-1], "frame-24")
 
     def test_validate_video_url_rejects_private_targets(self) -> None:
         with self.assertRaises(DownloadError):
