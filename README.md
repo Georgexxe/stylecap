@@ -113,8 +113,9 @@ Build the required Linux AMD64 image:
 docker buildx build --platform linux/amd64 -t ghcr.io/georgexxe/stylecap:latest --push .
 ```
 
-Pushes to `main` also run the contract tests and publish both `latest` and an immutable
-commit-SHA tag through GitHub Actions.
+Pushes to `main` run the contract tests, lint checks, and a Linux AMD64 image build through
+GitHub Actions. Publishing remains an explicit release step because the existing GHCR
+package does not grant repository workflow tokens write access.
 
 Local evaluator run:
 
