@@ -12,6 +12,6 @@ cache/
 out/
 out-demo/
 live-results*.json
-docker-test/
+docker-test*/
 assets/cover.png
 .streamlit/secrets.toml

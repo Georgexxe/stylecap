@@ -32,11 +32,15 @@ def parse_allowed_models(raw: str | None = None) -> list[str]:
 
 ALLOWED_MODELS = parse_allowed_models()
 
-DEFAULT_GEMMA_DEPLOYMENT = "accounts/g18797056-9yumhha51c/deployments/ssme9at7"
-GEMMA_DEPLOYMENT = os.environ.get("STYLECAP_GEMMA_DEPLOYMENT", DEFAULT_GEMMA_DEPLOYMENT)
+DEFAULT_GEMMA_MODEL = "accounts/fireworks/models/gemma-4-31b-it"
+GEMMA_DEPLOYMENT = os.environ.get("STYLECAP_GEMMA_DEPLOYMENT", DEFAULT_GEMMA_MODEL)
 SERVERLESS_FALLBACK_MODEL = os.environ.get(
     "STYLECAP_SERVERLESS_FALLBACK_MODEL",
-    "accounts/fireworks/models/gemma-4-31b-it",
+    DEFAULT_GEMMA_MODEL,
+)
+SCORING_MODEL = os.environ.get(
+    "STYLECAP_SCORING_MODEL",
+    "accounts/fireworks/models/minimax-m3",
 )
 
 
@@ -78,9 +82,10 @@ MAX_REGEN_ROUNDS = 2
 
 # Ingest
 TARGET_FPS = 1.25
-MAX_FRAMES = 16
+MAX_FRAMES = 24
+EVALUATION_WORKERS = int(os.environ.get("STYLECAP_EVALUATION_WORKERS", "4"))
 SCENE_CHANGE_THRESHOLD = 0.3
-INGEST_CACHE_VERSION = "v2"
+INGEST_CACHE_VERSION = "v4"
 ENABLE_ASR = os.environ.get("STYLECAP_ENABLE_ASR", "0") == "1"
 WHISPER_MODEL = os.environ.get("STYLECAP_WHISPER_MODEL", "small")
 

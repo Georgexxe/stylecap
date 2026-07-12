@@ -1,4 +1,9 @@
-# StyleCap Live Benchmark
+# StyleCap Gemma Baseline Benchmark
+
+This document records the original three-call Gemma baseline from July 11. The current
+submission evaluator uses a separate 24-frame, single-call serverless scoring path; these
+figures are retained as historical product-pipeline evidence and are not current evaluator
+performance claims.
 
 ## Configuration
 
@@ -40,10 +45,8 @@ validation.
 
 ## Cost Control
 
-The deployment is billed at $10 per active GPU-hour. After testing, its autoscaling bounds
-were updated to `min=0`, `max=1`, and the control API confirmed both desired and actual
-replica counts at zero. Token-cost entries in `budget.jsonl` are estimates only; on-demand
-deployment billing is based on active GPU-seconds.
+The original deployment was billed at $10 per active GPU-hour. The current evaluator no
+longer references account-specific on-demand infrastructure and uses serverless endpoints.
 
 ## Limitations
 

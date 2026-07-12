@@ -7,15 +7,16 @@ StyleCap generates grounded captions for video clips in four requested voices:
 
 **Live demo:** https://stylecap-gemma.streamlit.app/
 
-The evaluation path uses three model calls per clip:
+The scoring container uses a benchmark-focused path:
 
-1. Perceive sampled frames into a factual scene sheet.
-2. Generate four candidates for every requested style in one batched call.
-3. Re-check representative frames and select the most accurate, style-faithful candidate
-   for each style in one batched multimodal call.
+1. Sample 24 frames uniformly across the complete clip.
+2. Send the full temporal sequence to serverless MiniMax M3 in one multimodal call.
+3. Validate caption length, completeness, and style distinctness before writing results.
+4. Process up to four evaluator clips concurrently while preserving task order.
 
-This compact path replaces the slower per-candidate judge loop and is designed for the
-hackathon's 10-minute container limit and hidden set of approximately 12 clips.
+Captions contain 2-3 complete sentences so the LLM judge receives both broad factual
+coverage and an unmistakable tone signal. The public product demo retains the separate
+Gemma fact-sheet and caption-selection workflow for transparent grounding.
 The Docker image installs only `requirements-runtime.txt`; Streamlit and its analytics
 dependencies remain outside the scoring image.
 
@@ -63,20 +64,16 @@ Never commit credentials. Copy `.env.example` for local development and set:
 - `FIREWORKS_API_KEY`: your Fireworks API key.
 - `ALLOWED_MODELS`: evaluator-supplied JSON array or comma-separated model allow-list.
   When present, it takes precedence over every local model override.
-- `STYLECAP_GEMMA_DEPLOYMENT`: optional override for the built-in submission deployment.
-  It powers perception, caption generation, and selection.
-- `STYLECAP_SERVERLESS_FALLBACK_MODEL`: optional reliability fallback used only when the
-  dedicated deployment returns a documented infrastructure failure.
+- `STYLECAP_SCORING_MODEL`: evaluator model; defaults to serverless MiniMax M3.
+- `STYLECAP_GEMMA_DEPLOYMENT`: optional Gemma model override for the public demo pipeline.
+- `STYLECAP_SERVERLESS_FALLBACK_MODEL`: evaluator fallback; defaults to Gemma 4 31B IT.
+- `STYLECAP_EVALUATION_WORKERS`: concurrent evaluator clips; defaults to four.
 - `STYLECAP_PERCEPTION_MODEL`, `STYLECAP_STYLE_MODEL`, and
   `STYLECAP_JUDGE_MODELS`: optional experiment-only overrides.
 - `STYLECAP_ENABLE_ASR=1`: optional local Whisper transcription. It is disabled by default to avoid cold-start downloads during evaluation.
 
-The target base model is `accounts/fireworks/models/gemma-4-31b-it-nvfp4` with a
-`GLOBAL` on-demand deployment. Its FP4 shape uses one B200 rather than the four-GPU
-shape required by the unquantized 26B model. Use replicas `0-1` and a short
-scale-to-zero window while developing. Warm one replica before latency-sensitive
-judging because a scaled-to-zero deployment initially returns
-`503 DEPLOYMENT_SCALING_UP`.
+The submission uses serverless endpoints only. It does not require or reference an
+account-specific dedicated deployment.
 
 ## Local verification
 
@@ -102,8 +99,7 @@ Run the Streamlit demo:
 The public Streamlit deployment accepts an uploaded clip or a direct public video URL,
 keeps the source video visible during review, and returns grounding evidence with four
 downloadable captions. It includes the system `ffmpeg` package required for video decoding.
-Live inference may take roughly one minute on the first request while the dedicated
-Fireworks replica scales from zero; subsequent requests are warm.
+Live inference uses serverless Fireworks models and requires an active API account.
 
 ## Docker
 

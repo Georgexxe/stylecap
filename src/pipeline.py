@@ -4,7 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import compact, config, ingest, perceive
+from . import compact, config, ingest, perceive, scoring
 from .evaluator import EvaluationResult, EvaluationTask
 from .schemas import FactSheet, FinalCaption
 
@@ -38,13 +38,14 @@ def process_clip(
 
 
 def process_task(task: EvaluationTask) -> EvaluationResult:
-    """Download and process one official evaluator task."""
+    """Process one evaluator task through the high-recall direct scoring path."""
     video_path = ingest.download_video(
         task.video_url,
         Path(config.CACHE_DIR) / "downloads",
     )
-    result = process_clip(str(video_path), styles=task.styles)
+    media = ingest.run(str(video_path))
+    captions = scoring.run(media["frames"], task.styles)
     return EvaluationResult(
         task_id=task.task_id,
-        captions={caption.style: caption.caption for caption in result.captions},
+        captions={caption.style: caption.caption for caption in captions},
     )

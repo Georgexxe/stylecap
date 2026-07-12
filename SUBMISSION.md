@@ -13,18 +13,17 @@ StyleCap - Grounded Four-Style Video Captioning with Gemma
 ## Short description
 
 StyleCap turns unseen videos into accurate captions in four unmistakable voices: formal,
-sarcastic, humorous-tech, and humorous-non-tech. A compact Gemma-centered pipeline first
-extracts grounded scene facts, then generates four candidates per voice and selects all
-four styles in only three model calls per clip.
+sarcastic, humorous-tech, and humorous-non-tech. Its scoring container samples 24 frames
+across each clip and generates all requested styles in one multimodal Fireworks call.
 
 ## Long description
 
 Humorous video captioning creates a structural conflict: increasing creativity often
-increases hallucination. StyleCap separates observation from writing. A vision-capable
-model converts sampled video frames into a factual scene sheet containing entities,
-actions, timeline beats, visible text, and grounded humor hooks. Gemma then produces four
-candidates for every requested voice in one batched call. A final judge call selects the
-candidate that best balances factual accuracy and tone fidelity.
+increases hallucination. StyleCap addresses this with two purpose-built execution paths.
+The public Gemma experience exposes a factual scene sheet and grounded caption selection.
+The automated evaluator sends 24 uniformly sampled frames directly to MiniMax M3, requests
+2-3 sentence captions with strong factual coverage, validates every style, and processes
+multiple clips concurrently within the benchmark time limit.
 
 The evaluation path is designed for the published hidden benchmark rather than the three
 example clips. It accepts arbitrary evaluator video URLs, enforces the exact Track 2 JSON
@@ -35,18 +34,17 @@ Streamlit demo that uses the production pipeline.
 
 ## Technology tags
 
-Gemma, Fireworks AI, video captioning, multimodal AI, Streamlit, Docker
+Gemma, MiniMax M3, Fireworks AI, video captioning, multimodal AI, Streamlit, Docker
 
-## Live-fire evidence
+## Verification evidence
 
-- Model: Gemma 4 31B IT NVFP4 on a dedicated Fireworks FP4 deployment.
-- Public coverage: all three official clips completed with all four required styles.
-- One-clip evaluator run: 19.3 seconds with cached media and fresh model calls.
-- Three-clip suite: 92.5 seconds, including two fresh downloads and perception passes.
-- Manual review found correct central actions and distinct styles on all three clips.
-- The deployment costs $10 per active GPU-hour and was verified at zero replicas after testing.
+- The exact three-task evaluator contract passes in the Linux submission container.
+- Every official public clip supplies 24 uniformly distributed frames.
+- Four concurrent workers preserve original task order and exact requested style keys.
+- Caption validation rejects malformed, short, empty, and near-duplicate outputs.
+- Unit, contract, lint, and strict type checks pass.
 
-See `BENCHMARK.md` for method, limitations, and representative observations.
+`BENCHMARK.md` records the earlier Gemma baseline and its limitations.
 
 ## Judge access
 

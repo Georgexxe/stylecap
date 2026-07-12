@@ -3,6 +3,7 @@
 import json
 import logging
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -121,13 +122,16 @@ def run_evaluation(
     output_path: Path,
     *,
     processor: TaskProcessor,
+    max_workers: int = 1,
 ) -> list[EvaluationResult]:
     """Process tasks while always preserving a complete Track 2 results file."""
     tasks = load_tasks(input_path)
     results = [fallback_result(task) for task in tasks]
     write_results(output_path, results)
+    if max_workers < 1:
+        raise ContractError("max_workers must be at least 1")
 
-    for index, task in enumerate(tasks):
+    def process_safely(index: int, task: EvaluationTask) -> tuple[int, EvaluationResult | None]:
         try:
             result = processor(task)
             result.validate_for(task)
@@ -137,7 +141,17 @@ def run_evaluation(
                 task.task_id,
                 exc,
             )
-            continue
-        results[index] = result
-        write_results(output_path, results)
+            return index, None
+        return index, result
+
+    with ThreadPoolExecutor(max_workers=min(max_workers, len(tasks))) as executor:
+        futures = [
+            executor.submit(process_safely, index, task)
+            for index, task in enumerate(tasks)
+        ]
+        for future in as_completed(futures):
+            index, result = future.result()
+            if result is not None:
+                results[index] = result
+                write_results(output_path, results)
     return results

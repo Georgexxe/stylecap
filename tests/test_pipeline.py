@@ -47,24 +47,14 @@ class PipelineTests(unittest.TestCase):
             video_url="https://example.com/clip.mp4",
             styles=["formal", "sarcastic"],
         )
-        clip_result = pipeline.PipelineResult(
-            facts=FactSheet(
-                clip_id="downloaded",
-                setting="a room",
-                entities=["a person"],
-                actions=["the person waves"],
-                timeline=[{"t": "0:01", "event": "the person waves"}],
-                mood="neutral",
+        captions = [
+            FinalCaption(clip_id="evaluation", style="formal", caption="A person waves."),
+            FinalCaption(
+                clip_id="evaluation",
+                style="sarcastic",
+                caption="A historic achievement in hand movement.",
             ),
-            captions=[
-                FinalCaption(clip_id="downloaded", style="formal", caption="A person waves."),
-                FinalCaption(
-                    clip_id="downloaded",
-                    style="sarcastic",
-                    caption="A historic achievement in hand movement.",
-                ),
-            ],
-        )
+        ]
 
         with (
             patch.object(
@@ -72,17 +62,20 @@ class PipelineTests(unittest.TestCase):
                 "download_video",
                 return_value=Path("cache/downloads/clip.mp4"),
             ) as download,
-            patch.object(pipeline, "process_clip", return_value=clip_result) as process,
+            patch.object(
+                pipeline.ingest,
+                "run",
+                return_value={"clip_id": "downloaded", "frames": ["frame-a.jpg"]},
+            ) as ingest_run,
+            patch.object(pipeline.scoring, "run", return_value=captions) as score,
         ):
             result = pipeline.process_task(task)
 
         self.assertEqual(result.task_id, "v1")
         self.assertEqual(result.captions["formal"], "A person waves.")
         download.assert_called_once()
-        process.assert_called_once_with(
-            os.path.normpath("cache/downloads/clip.mp4"),
-            styles=["formal", "sarcastic"],
-        )
+        ingest_run.assert_called_once_with(os.path.normpath("cache/downloads/clip.mp4"))
+        score.assert_called_once_with(["frame-a.jpg"], ["formal", "sarcastic"])
 
 
 if __name__ == "__main__":

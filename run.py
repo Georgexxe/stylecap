@@ -72,6 +72,7 @@ def evaluate(
         Path(input_path),
         Path(output_path),
         processor=processor,
+        max_workers=config.EVALUATION_WORKERS,
     )
     typer.echo(f"wrote {len(results)} task result(s) to {output_path}")
 

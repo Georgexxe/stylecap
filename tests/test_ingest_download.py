@@ -2,6 +2,7 @@
 
 import functools
 import socket
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -9,6 +10,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from src import ingest
 from src.ingest import DownloadError, _evenly_cap, download_video, validate_video_url
 
 
@@ -53,6 +55,18 @@ class DownloadTests(unittest.TestCase):
         self.assertEqual(len(selected), 8)
         self.assertEqual(selected[0], "frame-0")
         self.assertEqual(selected[-1], "frame-24")
+
+    def test_sampling_fps_targets_the_frame_budget(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout="12.0\n",
+            stderr="",
+        )
+        with patch.object(ingest.subprocess, "run", return_value=completed):
+            fps = ingest._sampling_fps("clip.mp4")
+
+        self.assertEqual(fps, ingest.config.MAX_FRAMES / 12.0)
 
     def test_validate_video_url_rejects_private_targets(self) -> None:
         with self.assertRaises(DownloadError):

@@ -40,6 +40,31 @@ def _mock_response(messages: list[Message], want_json: bool) -> str:
     """Deterministic fake keyed on the prompt hash — stable across runs."""
     seed = hashlib.sha256(json.dumps(messages, default=str).encode()).hexdigest()[:8]
     text = " ".join(str(m.get("content", ""))[:2000] for m in messages).lower()
+    if want_json and "expert video captioner" in text and "2-3 complete sentences" in text:
+        styles = [style for style in config.STYLES if style in text] or config.STYLES
+        options = {
+            "formal": (
+                "An orange cat crosses a bright kitchen counter while watching the camera "
+                "and pushes a glass toward the edge. The glass drops out of view, leaving "
+                "the animal standing beside the remaining objects on the work surface."
+            ),
+            "sarcastic": (
+                "An orange cat conducts a very serious inspection of the kitchen counter "
+                "before casually sending a glass over the edge. Apparently gravity needed "
+                "another thorough demonstration, and the cat was uniquely qualified to provide it."
+            ),
+            "humorous_tech": (
+                "The orange cat runs a countertop stress test, selects one glass, and executes "
+                "a manual drop command while staring into the camera. Gravity accepts the "
+                "request immediately, proving this particular API has no confirmation dialog."
+            ),
+            "humorous_non_tech": (
+                "An orange cat strolls along the kitchen counter and gives one glass the tiny "
+                "push it never asked for. The glass disappears over the side while its furry "
+                "coworker remains behind, looking remarkably pleased with the day's productivity."
+            ),
+        }
+        return json.dumps({style: options[style] for style in styles})
     # Several prompts contain "fact sheet", so match specific intents before perception.
     if want_json and "exactly four" in text and "candidates" in text:
         styles = [style for style in config.STYLES if style in text] or config.STYLES

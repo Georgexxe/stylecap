@@ -116,6 +116,35 @@ class EvaluatorTests(unittest.TestCase):
         self.assertEqual(written[1]["captions"]["formal"], "A person waves to the camera.")
         self.assertEqual([result.task_id for result in results], ["broken", "working"])
 
+    def test_parallel_evaluation_preserves_task_order(self) -> None:
+        payload = [
+            {
+                "task_id": f"v{index}",
+                "video_url": f"https://example.com/{index}.mp4",
+                "styles": ["formal"],
+            }
+            for index in range(4)
+        ]
+
+        def processor(task: EvaluationTask) -> EvaluationResult:
+            return EvaluationResult(
+                task_id=task.task_id,
+                captions={"formal": f"Caption for {task.task_id}."},
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            input_path = Path(directory) / "tasks.json"
+            output_path = Path(directory) / "results.json"
+            input_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            results = run_evaluation(
+                input_path,
+                output_path,
+                processor=processor,
+                max_workers=4,
+            )
+
+        self.assertEqual([result.task_id for result in results], ["v0", "v1", "v2", "v3"])
 
 if __name__ == "__main__":
     unittest.main()

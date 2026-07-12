@@ -132,6 +132,32 @@ def _evenly_cap(items: list[str], limit: int) -> list[str]:
     return [items[index] for index in dict.fromkeys(indices)]
 
 
+def _sampling_fps(clip: str) -> float:
+    """Choose a rate that targets the frame budget across the full clip."""
+    try:
+        probe = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                clip,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        duration = float(probe.stdout.strip())
+        if duration > 0:
+            return config.MAX_FRAMES / duration
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        pass
+    return config.TARGET_FPS
+
+
 def _extract_frames(clip: str, out_dir: str) -> list[str]:
     """Extract deterministic temporal samples capped at ``MAX_FRAMES``."""
     for stale_frame in Path(out_dir).glob("*.jpg"):
@@ -146,7 +172,7 @@ def _extract_frames(clip: str, out_dir: str) -> list[str]:
             "-i",
             clip,
             "-vf",
-            f"fps={config.TARGET_FPS},scale=640:-1",
+            f"fps={_sampling_fps(clip):.6f},scale=640:-1",
             "-q:v",
             "4",
             uni,
