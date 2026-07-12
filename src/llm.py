@@ -156,15 +156,19 @@ def chat(
     if MOCK:
         return _mock_response(messages, want_json)
     budget.check()
+    last_error: BaseException | None = None
     used_model = model
-    try:
-        out, tin, tout = _call(model, messages, temperature, max_tokens, want_json)
-    except (APIConnectionError, APIStatusError, APITimeoutError):
-        fallback = config.SERVERLESS_FALLBACK_MODEL
-        if not fallback or fallback == model:
-            raise
-        used_model = fallback
-        out, tin, tout = _call(fallback, messages, temperature, max_tokens, want_json)
+    for candidate in config.model_candidates(model):
+        used_model = candidate
+        try:
+            out, tin, tout = _call(candidate, messages, temperature, max_tokens, want_json)
+            break
+        except (APIConnectionError, APIStatusError, APITimeoutError) as exc:
+            last_error = exc
+    else:
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("no permitted inference model is configured")
     budget.record(used_model, tin, tout, stage)
     return out
 

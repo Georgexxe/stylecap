@@ -51,6 +51,41 @@ class GatewayReliabilityTests(unittest.TestCase):
             "perceive",
         )
 
+    def test_chat_uses_only_evaluator_allowed_models(self) -> None:
+        messages = [{"role": "user", "content": "hello"}]
+        allowed = ["accounts/fireworks/models/allowed-a", "allowed-b"]
+
+        with (
+            patch.object(llm, "MOCK", False),
+            patch.object(config, "ALLOWED_MODELS", allowed),
+            patch.object(
+                llm,
+                "_call",
+                side_effect=[status_error(500), ("allowed response", 7, 3)],
+            ) as call,
+            patch.object(llm.budget, "check"),
+            patch.object(llm.budget, "record"),
+        ):
+            result = llm.chat("private-deployment", messages, "perceive")
+
+        self.assertEqual(result, "allowed response")
+        self.assertEqual(
+            [item.args[0] for item in call.call_args_list],
+            allowed,
+        )
+
+
+class AllowedModelConfigurationTests(unittest.TestCase):
+    def test_parses_json_and_comma_separated_allow_lists(self) -> None:
+        self.assertEqual(
+            config.parse_allowed_models('["model-a", "model-b", "model-a"]'),
+            ["model-a", "model-b"],
+        )
+        self.assertEqual(
+            config.parse_allowed_models("model-a, model-b"),
+            ["model-a", "model-b"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

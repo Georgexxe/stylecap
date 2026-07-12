@@ -81,6 +81,41 @@ class EvaluatorTests(unittest.TestCase):
                 ],
             )
 
+    def test_processor_failure_still_writes_complete_results_and_continues(self) -> None:
+        payload = [
+            {
+                "task_id": "broken",
+                "video_url": "https://example.com/broken.mp4",
+                "styles": ["formal", "humorous_tech"],
+            },
+            {
+                "task_id": "working",
+                "video_url": "https://example.com/working.mp4",
+                "styles": ["formal"],
+            },
+        ]
+
+        def processor(task: EvaluationTask) -> EvaluationResult:
+            if task.task_id == "broken":
+                raise RuntimeError("simulated provider rejection")
+            return EvaluationResult(
+                task_id=task.task_id,
+                captions={"formal": "A person waves to the camera."},
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            input_path = Path(directory) / "tasks.json"
+            output_path = Path(directory) / "results.json"
+            input_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            results = run_evaluation(input_path, output_path, processor=processor)
+            written = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual([item["task_id"] for item in written], ["broken", "working"])
+        self.assertEqual(set(written[0]["captions"]), {"formal", "humorous_tech"})
+        self.assertEqual(written[1]["captions"]["formal"], "A person waves to the camera.")
+        self.assertEqual([result.task_id for result in results], ["broken", "working"])
+
 
 if __name__ == "__main__":
     unittest.main()

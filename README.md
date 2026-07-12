@@ -23,6 +23,10 @@ dependencies remain outside the scoring image.
 
 The container reads `/input/tasks.json` on startup and writes `/output/results.json`
 before exiting. Style IDs use underscores exactly as published in the participant guide.
+During judging it reads `ALLOWED_MODELS` and uses only model IDs authorized by the
+evaluator. Results are written atomically before remote inference begins and updated after
+each successful task, so a provider or clip failure cannot crash the whole batch or leave
+the evaluator without valid JSON.
 
 Input:
 
@@ -57,6 +61,8 @@ Output:
 Never commit credentials. Copy `.env.example` for local development and set:
 
 - `FIREWORKS_API_KEY`: your Fireworks API key.
+- `ALLOWED_MODELS`: evaluator-supplied JSON array or comma-separated model allow-list.
+  When present, it takes precedence over every local model override.
 - `STYLECAP_GEMMA_DEPLOYMENT`: optional override for the built-in submission deployment.
   It powers perception, caption generation, and selection.
 - `STYLECAP_SERVERLESS_FALLBACK_MODEL`: optional reliability fallback used only when the
@@ -106,6 +112,9 @@ Build the required Linux AMD64 image:
 ```bash
 docker buildx build --platform linux/amd64 -t ghcr.io/georgexxe/stylecap:latest --push .
 ```
+
+Pushes to `main` also run the contract tests and publish both `latest` and an immutable
+commit-SHA tag through GitHub Actions.
 
 Local evaluator run:
 

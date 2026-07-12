@@ -54,12 +54,24 @@ def evaluate(
     """Run the official Track 2 evaluator file contract."""
     if mock:
         llm.MOCK = True
+    processor = pipeline.process_task
     if not llm.MOCK:
-        config.validate_runtime()
+        try:
+            config.validate_runtime()
+        except RuntimeError as exc:
+            typer.echo(f"runtime configuration unavailable: {exc}; writing fallbacks", err=True)
+
+            def unavailable_processor(
+                task: evaluator.EvaluationTask,
+                cause: RuntimeError = exc,
+            ) -> evaluator.EvaluationResult:
+                raise cause
+
+            processor = unavailable_processor
     results = evaluator.run_evaluation(
         Path(input_path),
         Path(output_path),
-        processor=pipeline.process_task,
+        processor=processor,
     )
     typer.echo(f"wrote {len(results)} task result(s) to {output_path}")
 
